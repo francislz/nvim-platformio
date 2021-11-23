@@ -16,10 +16,16 @@ function Input:new(opts)
 
   if opts.is_prompt then
     vim.api.nvim_buf_set_option(object.buffer, "buftype", "prompt")
-    vim.fn.prompt_setprompt(object.buffer, '> ')
-    vim.fn.prompt_setcallback(object.buffer, object.callback)
+    vim.fn.prompt_setprompt(object.buffer, 'search> ')
   end
   return object
+end
+
+function Input:set_callback(callback)
+  self.callback = callback
+  if self.is_prompt then
+    vim.fn.prompt_setcallback(self.buffer, callback)
+  end
 end
 
 function Input:set_buffer_type(buftype)
