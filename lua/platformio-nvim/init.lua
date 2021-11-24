@@ -3,6 +3,33 @@ local libraries = require('platformio-nvim.api.libraries')
 local input = require('platformio-nvim.gui.input')
 local window = require('platformio-nvim.gui.window')
 
+local M = {}
+
+__PlatformIOKeymapStore = setmetatable({}, {
+  __index = function (t, k)
+    rawset(t, k, {})
+    return rawget(t, k)
+  end
+})
+
+local keymap_store = __PlatformIOKeymapStore
+local _mapping_key_id = 0
+local get_next_id = function ()
+  _mapping_key_id = _mapping_key_id + 1
+  return _mapping_key_id
+end
+
+local function assign_function(prompt_bufnr, func)
+  local func_id = get_next_id()
+  keymap_store[prompt_bufnr][func_id] = func
+  return func_id
+end
+
+function M.execute_keymap(buff_id, func_id)
+  local func = keymap_store[buff_id][func_id];
+  func()
+end
+
 local BaseLayoutStrategy = {
   prompt = {},
   results = {},
@@ -69,7 +96,7 @@ local function formatResults(items)
   return lines
 end
 
-local function test()
+function M.test()
   local picker = Picker:new({ width_factor = 0.6, height_factor = 0.65 })
 
   local result_window = window:new(picker.layout_strategy.results)
@@ -85,37 +112,12 @@ local function test()
     vim.api.nvim_buf_set_lines(result_window.buffer, 0, 1, false, formatResults(results.items))
   end)
   search:display()
-  local key_func = function ()
-    print('test')
-  end
-  print(type(key_func))
-  vim.api.nvim_buf_set_keymap(search.buffer, 'n', '<esc>', [[:lua print(math.random())<CR>]], { noremap = true })
+
+  local func_id = assign_function(search.buffer, function ()
+    print('Hello')
+  end)
+
+  vim.api.nvim_buf_set_keymap(search.buffer, 'n', '<esc>', string.format([[:lua require('platformio-nvim').execute_keymap(%s, %s)<cr>]], search.buffer, func_id), { noremap = true })
 end
 
---[[__TelescopeKeymapStore = setmetatable({}, {
-    1   __index = function(t, k)
-    2   rawset(t, k, {})
-    3   print(dump(t), k)
-    4   return rawget(t, k)
-    5   end,
-    6 })
-    7 local keymap_store = __TelescopeKeymapStore
-    8  
-    9 local _mapping_key_id = 0
-   10 local get_next_id = function()
-   11   _mapping_key_id = _mapping_key_id + 1
-   12   return _mapping_key_id
-   13 end
-   14  
-   15 local assign_function = function(prompt_bufnr, func)
-   16   local func_id = get_next_id()
-   17  
-   18   keymap_store[prompt_bufnr][func_id] = func
-   19  
-   20   return func_id
-   21 end
-   ]]--
-
-return {
-  test = test
-}
+return M
